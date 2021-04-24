@@ -1,0 +1,4 @@
+enum TaskActions {
+  Modify,
+  Delete
+}
