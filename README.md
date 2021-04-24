@@ -8,4 +8,6 @@ Make sure you have well installed flutter on your computer, accepted android lic
 to install Android SDKs).
 
 To launch the app, run the following command on the root folder: 
-```flutter run```
+```
+flutter run
+```
