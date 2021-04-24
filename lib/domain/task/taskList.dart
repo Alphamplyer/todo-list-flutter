@@ -33,8 +33,11 @@ class TaskList {
     _tasks.add(task);
   }
 
-  void modifyTask(Task task, int index) {
-    _tasks[index] = task;
+  void modifyTask(Task task, Task newTask) {
+    int index = _tasks.lastIndexOf(task);
+    if (index == -1)
+      return;
+    _tasks[index] = newTask;
   }
 
   void deleteTask(Task task) {

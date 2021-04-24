@@ -5,6 +5,7 @@ import 'package:todo_app/domain/task/task.dart';
 import 'package:todo_app/domain/task/taskActions.dart';
 import 'package:todo_app/domain/task/taskList.dart';
 import 'package:todo_app/infra/task/taskListSerializerImpl.dart';
+import 'package:todo_app/view/widget/taskDialog.dart';
 
 void main() {
   runApp(TodoApp());
@@ -26,9 +27,6 @@ class TodoList extends StatefulWidget {
 
 class _TodoListState extends State<TodoList> {
   TaskList taskList = TaskList("main task", TaskListSerializerImpl());
-
-  final TextEditingController _taskNameTextFieldController = TextEditingController();
-  final TextEditingController _taskDescriptionTextFieldController = TextEditingController();
 
   @override
   void initState() {
@@ -75,41 +73,44 @@ class _TodoListState extends State<TodoList> {
 
   Widget _buildTaskItem(Task task) {
     return Card(
-      child: ListTile(
-        title: Text(
-            task.name,
-            style: TextStyle(fontWeight: FontWeight.bold)
-        ),
-        trailing: PopupMenuButton<TaskActions>(
-          onSelected: (TaskActions action) => handleItemPopupMenuSelection(action, task),
-          itemBuilder: (BuildContext context) => <PopupMenuEntry<TaskActions>> [
-            const PopupMenuItem<TaskActions>(
-                value: TaskActions.Modify,
-                child: Text('Modify'),
-            ),
-            const PopupMenuItem<TaskActions>(
-                value: TaskActions.Delete,
-                child: Text('Delete', style: TextStyle(color: Colors.red),)
-            )
-          ]
-        ),
-      )
-    );
+        child: ListTile(
+      title: Text(task.name, style: TextStyle(fontWeight: FontWeight.bold)),
+      trailing: PopupMenuButton<TaskActions>(
+          onSelected: (TaskActions action) => handleItemPopupMenuSelection(context, action, task),
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<TaskActions>>[
+                const PopupMenuItem<TaskActions>(
+                  value: TaskActions.Modify,
+                  child: Text('Modify'),
+                ),
+                const PopupMenuItem<TaskActions>(
+                    value: TaskActions.Delete,
+                    child: Text(
+                      'Delete',
+                      style: TextStyle(color: Colors.red),
+                    ))
+              ]),
+    ));
   }
 
-  void handleItemPopupMenuSelection(TaskActions action, Task task) {
+  void handleItemPopupMenuSelection(BuildContext context, TaskActions action, Task task) {
     switch (action) {
       case TaskActions.Modify:
+        modifyTaskItem(context, task);
         break;
       case TaskActions.Delete:
-        deleteTaskItem(task);
+        _deleteTask(task);
         break;
       default:
         break;
     }
   }
 
-  void deleteTaskItem(Task task) {
+  void modifyTaskItem(BuildContext context, Task task) async{
+    await _displayModifyTaskDialog(context, task);
+
+  }
+
+  void _deleteTask(Task task) {
     setState(() {
       taskList.deleteTask(task);
       taskList.save();
@@ -120,53 +121,41 @@ class _TodoListState extends State<TodoList> {
     return showDialog(
         context: context,
         builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Add a New Task'),
-            content: SingleChildScrollView(
-              child: ListBody(children: <Widget>[
-                Text(
-                  'Task name',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                TextField(
-                    controller: _taskNameTextFieldController,
-                    decoration: const InputDecoration(hintText: 'Task name'),
-                    maxLength: 50,
-                    maxLines: 1),
-                Text(
-                  'Task description',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                TextField(
-                    controller: _taskDescriptionTextFieldController,
-                    decoration: const InputDecoration(hintText: 'Task description (optional)')),
-              ]),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('CANCEL'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                  child: const Text('ADD'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    _addTask(_taskNameTextFieldController.text, _taskDescriptionTextFieldController.text);
-                  }),
-            ],
-          );
+          return TaskDialog(
+              onSubmit: _addTask,
+              actionText: const Text(
+                'ADD',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ));
         });
   }
 
-  void _addTask(String title, String description) {
+  void _addTask(Task task) {
     setState(() {
-      taskList.addTask(Task(title, description));
+      taskList.addTask(task);
       taskList.save();
     });
+  }
 
-    _taskNameTextFieldController.clear();
-    _taskDescriptionTextFieldController.clear();
+  Future<void> _displayModifyTaskDialog(BuildContext context, Task task) async {
+    return showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return TaskDialog(
+              onSubmit: (newTask) {
+                _modifyTask(task, newTask);
+              },
+              actionText: const Text(
+                'MODIFY',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ));
+        });
+  }
+
+  void _modifyTask(Task task, Task newTask) {
+    setState(() {
+      taskList.modifyTask(task, newTask);
+      taskList.save();
+    });
   }
 }
